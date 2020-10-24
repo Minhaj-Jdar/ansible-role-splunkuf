@@ -1,0 +1,13 @@
+---
+# This is an example playbook to execute Ansible tests.
+- name: Verify
+  hosts: all
+  tasks:
+  - name: Inspect Splunk UF install path
+    stat:
+      path: "{{ splunk_installdir_linux }}"
+    register: status
+
+  - name: Verify Splunk UF is installed
+    assert:
+      that: "status.stat.exists is true"

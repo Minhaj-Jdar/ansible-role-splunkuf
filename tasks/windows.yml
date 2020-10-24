@@ -1,0 +1,57 @@
+---
+- name: Check Splunk UF service is installed
+  changed_when: not precheck_splunkuf_service.exists
+  become_method: runas
+  win_service:
+    name: splunkforwarder
+  register: precheck_splunkuf_service
+  failed_when: precheck_splunkuf_service.failed
+  tags:
+    - download
+
+- name: Download the Splunk UF Windows binary
+  when: not precheck_splunkuf_service.exists
+  become_method: runas
+  win_get_url:
+    url: "{{ binary_src_windows }}"
+    dest: "{{ binary_tmpdir_windows }}{{ binary_filename_windows }}"
+  register: download_splunkuf_windows_binary
+  failed_when: download_splunkuf_windows_binary.failed
+  tags:
+    - download
+
+- name: Include secrets file for Splunk Admin creds
+  include_vars:
+    file: secrets.yml
+  no_log: True
+  tags:
+    - install
+
+- name: Install Splunk UF to Windows
+  when: not precheck_splunkuf_service.exists and download_splunkuf_windows_binary is not skipped
+  become_method: runas
+  win_command: "{{ install_cmd_windows }}"
+  register: install_splunkuf
+  failed_when: install_splunkuf.rc != 0
+  no_log: True
+  tags:
+    - install
+
+- name: Check if Splunk UF service is installed
+  when: not precheck_splunkuf_service.exists and install_splunkuf.rc == 0
+  become_method: runas
+  win_service:
+    name: splunkforwarder
+  register: postcheck_splunkuf_service
+  failed_when: postcheck_splunkuf_service.failed
+  tags:
+    - install
+
+- name: Start Splunk UF on Windows
+  when: not precheck_splunkuf_service.exists and install_splunkuf.rc == 0
+  become_method: runas
+  win_command: '"{{ splunk_installdir_windows }}\bin\splunk" start --accept-license'
+  register: start_splunkuf
+  failed_when: start_splunkuf.failed
+  tags:
+    - start

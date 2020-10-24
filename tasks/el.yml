@@ -1,0 +1,85 @@
+---
+- name: Check Splunk UF already installed
+  changed_when: not check_splunkuf_installed.stat.exists
+  stat:
+    path: "{{ splunk_installdir_linux }}/bin/splunk"
+  register: check_splunkuf_installed
+  failed_when: check_splunkuf_installed.failed
+  tags:
+    - download
+
+- name: Download Splunk UF linux binary
+  when: not check_splunkuf_installed.stat.exists
+  become: yes
+  get_url:
+    url: "{{ binary_src_linux }}"
+    dest: "{{ binary_tmpdir_linux }}{{ binary_filename_linux }}"
+    validate_certs: no
+  register: download_splunkuf_linux
+  failed_when: download_splunkuf_linux.failed
+  tags:
+    - download
+
+- name: Untar Splunk UF linux binary
+  when: download_splunkuf_linux is not skipped and not check_splunkuf_installed.stat.exists
+  become: yes
+  become_method: sudo
+  command: tar xzf {{ binary_tmpdir_linux }}{{ binary_filename_linux }} -C /opt
+  args:
+   warn: False
+  register: untar_splunkuf_linux
+  failed_when: untar_splunkuf_linux.failed
+  tags:
+    - install
+
+- name: Copy user-seed.conf to Splunk UF install path
+  when: not check_splunkuf_installed.stat.exists and untar_splunkuf_linux.rc == 0
+  become: yes
+  become_method: sudo
+  copy:
+    src: user-seed.conf
+    dest: "{{ splunk_installdir_linux }}/etc/system/local/"
+  register: copy_userseedconf
+  failed_when: copy_userseedconf.failed
+  tags:
+    - install
+
+- name: Set Splunk UF deployment server
+  when: untar_splunkuf_linux is not skipped and not check_splunkuf_installed.stat.exists
+  become: yes
+  become_method: sudo
+  command: "{{ splunk_installdir_linux }}/bin/splunk set deploy-poll {{ deployment_server }} --accept-license --answer-yes --auto-ports --no-prompt"
+  register: set_deployment_server
+  failed_when: set_deployment_server.rc != 0
+  tags:
+    - install
+
+- name: Enable Splunk UF boot start
+  when: untar_splunkuf_linux is not skipped and not check_splunkuf_installed.stat.exists
+  become: yes
+  become_method: sudo
+  command: "{{ splunk_installdir_linux }}/bin/splunk enable boot-start"
+  register: enable_boot_start
+  failed_when: enable_boot_start.rc != 0
+  tags:
+    - install
+
+- name: Start Splunk UF
+  when: untar_splunkuf_linux is not skipped and not check_splunkuf_installed.stat.exists
+  become: yes
+  become_method: sudo
+  command: "{{ splunk_installdir_linux }}/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt"
+  register: start_splunkuf
+  failed_when: start_splunkuf.rc != 0
+  tags:
+    - start
+
+- name: Check Splunk UF status
+  when: start_splunkuf is not skipped
+  become: yes
+  become_method: sudo
+  command: "{{ splunk_installdir_linux }}/bin/splunk status"
+  register: check_splunkuf_daemon
+  failed_when: check_splunkuf_daemon.rc != 0
+  tags:
+    - start

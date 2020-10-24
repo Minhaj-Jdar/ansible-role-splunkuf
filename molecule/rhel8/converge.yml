@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Include ansible-role-splunkuf
+      import_role:
+        name: ansible-role-splunkuf

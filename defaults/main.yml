@@ -1,0 +1,13 @@
+---
+# defaults file for ansible-role-splunkuf
+
+binary_src_linux: https://
+binary_src_windows: https://
+binary_tmpdir_linux: /tmp/
+binary_tmpdir_windows: C:\windows\temp\
+binary_filename_linux: splunkforwarder-8.0.5-a1a6394cc5ae-Linux-x86_64.tgz
+binary_filename_windows: splunkforwarder-8.0.5-a1a6394cc5ae-x64-release.msi
+splunk_installdir_linux: /opt/splunkforwarder
+splunk_installdir_windows: C:\Program Files\SplunkUniversalForwarder
+deployment_server: deploymentserver:8089
+install_cmd_windows: msiexec.exe /i "{{ binary_tmpdir_windows }}{{ binary_filename_windows }}" INSTALLDIR="{{ splunk_installdir_windows }}" DEPLOYMENT_SERVER="{{ deployment_server }}" LAUNCHSPLUNK="0" SERVICESTARTTYPE="auto" SPLUNKUSERNAME="{{ USERNAME }}" SPLUNKPASSWORD="{{ PASSWORD }}" AGREETOLICENSE="Yes" /quiet
